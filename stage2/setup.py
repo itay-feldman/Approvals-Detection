@@ -12,7 +12,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            ""
+            "check_approvals=pyproval.check_approvals:check_approvals"
         ]
     }
 )
