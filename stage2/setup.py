@@ -6,6 +6,8 @@ setup(
     name='PyProval',
     version=__version__,
     packages=find_packages(),
+    description="Somewhat quick and dirty script to show all of the Approval (ERC20-like) "
+                "events for an Ethereum account address",
     requires=[
         "click",
         "web3py"
