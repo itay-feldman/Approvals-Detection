@@ -11,6 +11,7 @@ setup(
     requires=[
         "click",
         "fastapi",
+        "pydantic",
         "uvicorn",
         "web3py"
     ],
