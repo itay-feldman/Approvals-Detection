@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from eth_typing import ChecksumAddress
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 from web3 import Web3
@@ -34,7 +33,7 @@ def get_topic_from_address(address: str) -> str:
     return topic.lower()
 
 
-def get_approval_events(address: str) -> List[LogReceipt]:
+def get_approval_events(address: str, contract: Optional[str] = None) -> List[LogReceipt]:
     # Create w3 object
     w3 = get_web3()
     # Filter by topics, topic 0 is the event type, topic 1 is the owner
@@ -43,6 +42,8 @@ def get_approval_events(address: str) -> List[LogReceipt]:
         "toBlock": "latest",
         "topics": [consts.APPROVAL_EVENT_TOPIC, get_topic_from_address(address)],
     }
+    if contract is not None:
+        filter_args["address"] = contract
     w3_filter = w3.eth.filter(filter_args)  # type: ignore
     # Take all of these logs in order, the thirds topic (index 2) is the
     #   recipient and the uint256 data is the amount of allowance
@@ -92,7 +93,7 @@ def filter_for_latest_approvals(approvals: List[LogReceipt]) -> List[LogReceipt]
     return all_approvals
 
 
-def get_contract(contract_address: ChecksumAddress):
+def get_contract(contract_address):
     w3 = get_web3()
     return w3.eth.contract(contract_address, abi=consts.ERC20_CONTRACT_ABI)
 
@@ -162,21 +163,47 @@ def get_user_allowance_per_contract(approvals: List[Erc20ApprovalData]) -> Dict[
     """Given a list of approvals, return a dict of the form {contract: exposure}. This list
     should be filtered to latest updates only, as in, for the same owner and same spender in the same
     contract, there should only be a single entry. It is assumed this list contains the events
-    for a single user.
+    for a single owner. Note: here, unlike with approvals, we check for the actual allowance
     """
-    allowance_per_contract: Dict[str, int] = {}
-    for approval in approvals:
-        if approval.contract_address not in allowance_per_contract:
-            allowance_per_contract[approval.contract_address] = 0
-        # The approval amount can be more than uin256 so if it is, we take the lower value
-        allowance_per_contract[approval.contract_address] += approval.amount
-        allowance_per_contract[approval.contract_address] = min(allowance_per_contract[approval.contract_address], consts.UINT256_MAX_VAL)
-    return allowance_per_contract
+    owner = approvals[0].owner_address if approvals else None
+    if owner is None:
+        return {}  # Save us some trouble...
+    contracts = set([approval.contract_address for approval in approvals])
+    contracts_and_spenders: Dict[str, List[str]] = {}
+    total_allowance: Dict[str, int] = {}
+    # Get all spenders in a contract
+    for address in contracts:
+        filtered_approvals = filter(lambda approval: approval.contract_address == address, approvals)
+        contracts_and_spenders[address] = list(set([approval.spender_address for approval in filtered_approvals]))
+    for contract in contracts:
+        if contract not in total_allowance:
+            total_allowance[contract] = 0
+        w3_contract = get_contract(contract)
+        for spender in contracts_and_spenders[contract]:
+            total_allowance[contract] += w3_contract.functions.allowance(owner, spender).call()
+        # The approval amount can be more than uin256 once we add everything so if it is, we take the lower value
+        total_allowance[contract] = min(total_allowance[contract], consts.UINT256_MAX_VAL)
+    return total_allowance
 
 
 def get_user_balance_per_contract(approvals: List[Erc20ApprovalData]) -> Dict[str, int]:
-    pass
+    """It is assumes that all approvals are of the same owner
+    """
+    contracts = set([approval.contract_address for approval in approvals])
+    balances: Dict[str, int] = {}
+    # If list is empty (which is weird but ok) we skip the loop
+    owner = approvals[0].owner_address if approvals else None
+    for contract in contracts:
+        w3_contract = get_contract(contract)
+        # As part of the ERC20 standard, balanceOf is a must have function
+        balances[contract] = w3_contract.functions.balanceOf(owner).call()
+    return balances
 
 
 def get_user_exposure_per_contract(approvals: List[Erc20ApprovalData]) -> Dict[str, int]:
-    pass
+    allowances = get_user_allowance_per_contract(approvals)
+    balances = get_user_balance_per_contract(approvals)
+    exposure: Dict[str, int] = {}
+    for contract in balances.keys():
+        exposure[contract] = min(balances[contract], allowances[contract])
+    return exposure
