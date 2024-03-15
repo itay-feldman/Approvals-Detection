@@ -172,3 +172,11 @@ def get_user_allowance_per_contract(approvals: List[Erc20ApprovalData]) -> Dict[
         allowance_per_contract[approval.contract_address] += approval.amount
         allowance_per_contract[approval.contract_address] = min(allowance_per_contract[approval.contract_address], consts.UINT256_MAX_VAL)
     return allowance_per_contract
+
+
+def get_user_balance_per_contract(approvals: List[Erc20ApprovalData]) -> Dict[str, int]:
+    pass
+
+
+def get_user_exposure_per_contract(approvals: List[Erc20ApprovalData]) -> Dict[str, int]:
+    pass
