@@ -1,8 +1,13 @@
 import uvicorn
-from web3 import Web3
 from typing import Annotated, Dict, List
-from fastapi import FastAPI, HTTPException, Response, Query
-from pyproval.approval_utils import get_approval_events, is_valid_address, LogReceipt
+from fastapi import FastAPI, HTTPException, Query
+from pyproval.approval_utils import (
+    filter_for_latest_approvals,
+    get_erc20_approval_data,
+    get_approval_events,
+    is_valid_address,
+    Erc20ApprovalData,
+)
 
 app = FastAPI(debug=True)
 
@@ -10,12 +15,16 @@ app = FastAPI(debug=True)
 @app.get("/approvals/")
 def get_approvals(addresses: Annotated[List[str], Query()]):
     if any([not is_valid_address(address) for address in addresses]):
-        raise HTTPException(400, "One or more of the account addresses supplied was invalid")
-    response: Dict[str, List[LogReceipt]] = {}
+        raise HTTPException(
+            400, "One or more of the account addresses supplied was invalid"
+        )
+    response: Dict[str, List[Erc20ApprovalData]] = {}
     for address in addresses:
-        response[address] = get_approval_events(address)
+        approvals = get_approval_events(address)
+        latest_approvals = filter_for_latest_approvals(approvals)
+        response[address] = get_erc20_approval_data(latest_approvals)
     # Return response
-    return Response(content=Web3.to_json(response), media_type="application/json")
+    return response
 
 
 def main():
