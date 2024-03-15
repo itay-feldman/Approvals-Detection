@@ -122,7 +122,7 @@ def get_erc20_approval_data(approvals: List[LogReceipt]) -> List[Erc20ApprovalDa
                 token_name=token_name,
                 token_symbol=token_symbol,
                 amount=approved_value,
-                transaction_hash=approval["transactionHash"].hex()
+                transaction_hash=approval["transactionHash"].hex(),
             )
         )
     return approval_data

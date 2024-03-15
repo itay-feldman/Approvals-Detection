@@ -42,7 +42,7 @@ def check_approvals(address: str, show_spender: bool):
                 )
         except Exception as e:
             click.echo(
-                f'Error occurred on approval event from transaction: {approval.transaction_hash}'
+                f"Error occurred on approval event from transaction: {approval.transaction_hash}"
             )
             click.echo(e)
 
