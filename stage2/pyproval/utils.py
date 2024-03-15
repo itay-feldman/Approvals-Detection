@@ -6,6 +6,7 @@ from web3 import Web3
 from web3.exceptions import BadFunctionCallOutput
 from web3.types import LogReceipt
 from pyproval import consts
+from pyproval.coingecko_utils import get_token_value_in_currency
 
 
 class Erc20ApprovalData(BaseModel):
@@ -14,7 +15,7 @@ class Erc20ApprovalData(BaseModel):
     spender_address: str
     token_name: Optional[str]
     token_symbol: Optional[str]
-    token_value_usd: Optional[int]
+    token_value_usd: Optional[float]
     amount: int
     transaction_hash: str
 
@@ -141,6 +142,7 @@ def get_erc20_approval_data(approvals: List[LogReceipt]) -> List[Erc20ApprovalDa
         token_symbol = get_token_symbol(contract)
         owner_address = get_owner_hex_address(approval)
         spender_address = get_spender_hex_address(approval)
+        token_value_usd = get_token_value_in_currency(token_symbol, "usd") if token_symbol else None
         approval_data.append(
             Erc20ApprovalData(
                 contract_address=contract_address,
@@ -150,6 +152,23 @@ def get_erc20_approval_data(approvals: List[LogReceipt]) -> List[Erc20ApprovalDa
                 token_symbol=token_symbol,
                 amount=approved_value,
                 transaction_hash=approval["transactionHash"].hex(),
+                token_value_usd=token_value_usd
             )
         )
     return approval_data
+
+
+def get_user_allowance_per_contract(approvals: List[Erc20ApprovalData]) -> Dict[str, int]:
+    """Given a list of approvals, return a dict of the form {contract: exposure}. This list
+    should be filtered to latest updates only, as in, for the same owner and same spender in the same
+    contract, there should only be a single entry. It is assumed this list contains the events
+    for a single user.
+    """
+    allowance_per_contract: Dict[str, int] = {}
+    for approval in approvals:
+        if approval.contract_address not in allowance_per_contract:
+            allowance_per_contract[approval.contract_address] = 0
+        # The approval amount can be more than uin256 so if it is, we take the lower value
+        allowance_per_contract[approval.contract_address] += approval.amount
+        allowance_per_contract[approval.contract_address] = min(allowance_per_contract[approval.contract_address], consts.UINT256_MAX_VAL)
+    return allowance_per_contract

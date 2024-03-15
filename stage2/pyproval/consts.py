@@ -20,3 +20,4 @@ COINGECKO_API_BASE_URL = "https://api.coingecko.com/api/v3"
 COINGECKO_API_LIST_VS_CURRENCIES_URL = f"{COINGECKO_API_BASE_URL}/simple/supported_vs_currencies"
 COINGECKO_API_LIST_ALL_COINS_URL = f"{COINGECKO_API_BASE_URL}/coins/list"
 COINGECKO_API_GET_TOKEN_PRICE_URL = f"{COINGECKO_API_BASE_URL}/simple/price?ids={{ids}},vs_currencies={{vs_curr}}"
+UINT256_MAX_VAL = 2 ** 256 - 1
