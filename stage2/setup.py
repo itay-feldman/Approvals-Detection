@@ -8,7 +8,7 @@ setup(
     packages=find_packages(),
     description="Somewhat quick and dirty script to show all of the Approval (ERC20-like) "
     "events for an Ethereum account address",
-    requires=["click", "fastapi", "pydantic", "uvicorn", "web3py"],
+    requires=["click", "fastapi", "pydantic", "requests", "uvicorn", "web3py"],
     entry_points={
         "console_scripts": [
             "check_approvals=pyproval.check_approvals:check_approvals",
