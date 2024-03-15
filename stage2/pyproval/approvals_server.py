@@ -6,11 +6,10 @@ from pyproval.utils import (
     get_erc20_approval_data,
     get_approval_events,
     is_valid_address,
-    get_user_exposure_per_contract,
+    get_user_exposure_per_contract_in_usd,
+    get_contract_name_from_address,
     Erc20ApprovalData,
 )
-import logging
-logging.getLogger().setLevel(logging.INFO)
 
 app = FastAPI(debug=True)
 
@@ -37,14 +36,16 @@ def get_approvals(addresses: Annotated[List[str], Query()]):
 @app.get("/exposure")
 def get_exposure(addresses: Annotated[List[str], Query()], contract: Annotated[str, Query()]):
     _validated_addresses(addresses)
-    result: Dict[str, Dict[str, int]] = {}
+    result: Dict[str, Dict[str, float]] = {}
     for address in addresses:
+        result[address] = {}
         approvals = get_approval_events(address, contract=contract)
         latest_approvals = filter_for_latest_approvals(approvals)
         erc20_approvals = get_erc20_approval_data(latest_approvals)
         # The result should have only a single contract
-        exposure = get_user_exposure_per_contract(erc20_approvals)
-        result[address] = exposure
+        exposure_in_usd = get_user_exposure_per_contract_in_usd(erc20_approvals)
+        for contract, amount in exposure_in_usd.items():
+            result[address][get_contract_name_from_address(contract)] = amount
     return result
 
 
