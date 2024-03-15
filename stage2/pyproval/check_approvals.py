@@ -1,5 +1,5 @@
 import click
-from pyproval.approval_utils import (
+from pyproval.utils import (
     filter_for_latest_approvals,
     get_erc20_approval_data,
     get_approval_events,
