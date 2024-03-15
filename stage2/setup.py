@@ -10,6 +10,7 @@ setup(
                 "events for an Ethereum account address",
     requires=[
         "click",
+        "fastapi",
         "web3py"
     ],
     entry_points={
