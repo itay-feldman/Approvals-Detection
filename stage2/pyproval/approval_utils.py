@@ -6,6 +6,10 @@ from web3.types import LogReceipt
 from pyproval import consts
 
 
+def is_valid_address(address: str) -> bool:
+    return Web3.is_address(address)
+
+
 def get_web3():
     return Web3(Web3.HTTPProvider(consts.INFURA_API_URL))
 

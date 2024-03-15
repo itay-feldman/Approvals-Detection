@@ -5,6 +5,7 @@ from pyproval.approval_utils import (
     get_approval_events,
     get_contract,
     get_spender_hex_address,
+    is_valid_address,
 )
 
 
@@ -22,6 +23,9 @@ from pyproval.approval_utils import (
     help="If specified, the spender address is also shown",
 )
 def check_approvals(address: str, show_spender: bool):
+    # Check if given address is valid
+    if not is_valid_address(address):
+        raise click.BadParameter("Invalid client address")
     # Call approval checker here
     all_approvals = get_approval_events(address)
     # Filter out redundant approvals
@@ -56,8 +60,10 @@ def check_approvals(address: str, show_spender: bool):
                     f"approval on {contract_name} ({contract_symbol}) of {approved_value}"
                 )
         except Exception as e:
-            click.echo(f'Error occurred on approval event from transaction: {approval["transactionHash"].hex()}')
-            raise click.Abort() from e
+            click.echo(
+                f'Error occurred on approval event from transaction: {approval["transactionHash"].hex()}'
+            )
+            click.echo(e)
 
 
 if __name__ == "__main__":
