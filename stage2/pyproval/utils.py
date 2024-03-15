@@ -1,8 +1,9 @@
 from collections import OrderedDict
 from eth_typing import ChecksumAddress
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Dict, List, Optional
 from web3 import Web3
+from web3.exceptions import BadFunctionCallOutput
 from web3.types import LogReceipt
 from pyproval import consts
 
@@ -11,8 +12,9 @@ class Erc20ApprovalData(BaseModel):
     contract_address: str
     owner_address: str
     spender_address: str
-    token_name: str
-    token_symbol: str
+    token_name: Optional[str]
+    token_symbol: Optional[str]
+    token_value_usd: Optional[int]
     amount: int
     transaction_hash: str
 
@@ -71,14 +73,22 @@ def filter_for_latest_approvals(approvals: List[LogReceipt]) -> List[LogReceipt]
     guaranteed to reflect an actual timeline (i.e. the approvals are not necessarily chronological),
     re-ordering the list can be achieved by using the block and transaction indexes in each log.
     """
-    latest_approvals: OrderedDict[str, LogReceipt] = OrderedDict()
+    latest_approvals: OrderedDict[str, OrderedDict[str, LogReceipt]] = OrderedDict()
     for approval in approvals:
         # We use the hex representation of the "recipient topic" as the key
         recipient_address = get_spender_hex_address(approval)
+        contract_address = approval["address"]
         # Since the list is ordered, we know that a value with the same recipient should always override
         # the previous value with the same recipient.
-        latest_approvals[recipient_address] = approval
-    return list(latest_approvals.values())
+        if recipient_address in latest_approvals:
+            latest_approvals[recipient_address][contract_address] = approval
+        else:
+            latest_approvals[recipient_address] = OrderedDict({contract_address: approval})
+    all_recipients = latest_approvals.values()
+    all_approvals = []
+    for recipient in all_recipients:
+        all_approvals.extend(list(recipient.values()))
+    return all_approvals
 
 
 def get_contract(contract_address: ChecksumAddress):
@@ -91,6 +101,23 @@ def get_amount_from_approval(approval: LogReceipt) -> Optional[int]:
     if data:
         return int(data, 16)
     return None
+
+
+def get_token_name(contract) -> Optional[str]:
+    # There are tokens like the Maker token that think it's funny to break
+    # the ABI of ERC20 and instead return bytes32 for the name and symbol
+    # and not a string, this breaks things so we wrap the calls
+    try:
+        return contract.functions.name().call()
+    except BadFunctionCallOutput:
+        return None
+
+
+def get_token_symbol(contract):
+    try:
+        return contract.functions.symbol().call()
+    except BadFunctionCallOutput:
+        return None
 
 
 def get_erc20_approval_data(approvals: List[LogReceipt]) -> List[Erc20ApprovalData]:
@@ -110,8 +137,8 @@ def get_erc20_approval_data(approvals: List[LogReceipt]) -> List[Erc20ApprovalDa
         contract_address = approval["address"]
         contract = get_contract(contract_address)
         # Get its name and symbol, and the approved value
-        token_name = contract.functions.name().call()
-        token_symbol = contract.functions.symbol().call()
+        token_name = get_token_name(contract)
+        token_symbol = get_token_symbol(contract)
         owner_address = get_owner_hex_address(approval)
         spender_address = get_spender_hex_address(approval)
         approval_data.append(
