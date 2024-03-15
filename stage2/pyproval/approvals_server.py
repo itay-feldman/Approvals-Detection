@@ -34,7 +34,9 @@ def get_approvals(addresses: Annotated[List[str], Query()]):
 
 
 @app.get("/exposure")
-def get_exposure(addresses: Annotated[List[str], Query()], contract: Annotated[str, Query()]):
+def get_exposure(
+    addresses: Annotated[List[str], Query()], contract: Annotated[str, Query()]
+):
     _validated_addresses(addresses)
     result: Dict[str, Dict[str, float]] = {}
     for address in addresses:

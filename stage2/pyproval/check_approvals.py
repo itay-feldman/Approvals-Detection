@@ -33,12 +33,12 @@ def check_approvals(address: str, show_spender: bool):
         try:
             if show_spender:
                 click.echo(
-                    f"approval on {approval.token_name} ({approval.token_symbol}) of {approval.amount} "
+                    f"approval on {approval.contract_data.token_name} ({approval.contract_data.token_symbol}) of {approval.amount} "
                     f"to {hex(int(approval.spender_address, 16))}"
                 )
             else:
                 click.echo(
-                    f"approval on {approval.token_name} ({approval.token_symbol}) of {approval.amount}"
+                    f"approval on {approval.contract_data.token_name} ({approval.contract_data.token_symbol}) of {approval.amount}"
                 )
         except Exception as e:
             click.echo(

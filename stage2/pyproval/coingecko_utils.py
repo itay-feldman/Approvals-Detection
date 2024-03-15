@@ -7,7 +7,7 @@ class CoinGeckoException(Exception):
     pass
 
 
-def list_coins() -> List[Dict[str, str]]:
+def _list_coins() -> List[Dict[str, str]]:
     response = requests.get(consts.COINGECKO_API_LIST_ALL_COINS_URL)
     if response.ok:
         return response.json()
@@ -15,21 +15,18 @@ def list_coins() -> List[Dict[str, str]]:
         raise CoinGeckoException(f"Coin Gecko responded with an error: {response.text}")
 
 
-def get_coingecko_id_from_symbol(token_symbol: str) -> Optional[str]:
-    all_tokens = list_coins()
+# Holding a list like this saves us the request to update (coin gecko will often throttle us)
+# but it could possible make the coin list outdated, since this is an exercise, I think that's fine
+_COIN_GECKO_LIST = _list_coins()
+
+
+def get_coingecko_id_from_name(token_name: str) -> Optional[str]:
     filtered_list = list(
-        filter(lambda item: item["symbol"].lower() == token_symbol.lower(), all_tokens)
+        filter(lambda item: item["name"] == token_name, _COIN_GECKO_LIST)
     )
     if filtered_list:
         # First result takes priority
         return filtered_list[0]["id"]
-
-
-def get_coingecko_id_from_name(token_name: str):
-    # This is a simple way to get the coin gecko id for a token
-    # Querying for the full list every time is time consuming and 
-    # makes coin gecko block our request because we exceed our allowed rate
-    return token_name.lower().replace(" ", "-")
 
 
 def get_all_supported_vs_currencies() -> List[str]:
