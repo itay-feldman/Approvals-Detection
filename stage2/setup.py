@@ -11,11 +11,13 @@ setup(
     requires=[
         "click",
         "fastapi",
+        "uvicorn",
         "web3py"
     ],
     entry_points={
         'console_scripts': [
-            "check_approvals=pyproval.check_approvals:check_approvals"
+            "check_approvals=pyproval.check_approvals:check_approvals",
+            "approvals_server=pyproval.approvals_server:main"
         ]
     }
 )
