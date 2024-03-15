@@ -49,16 +49,16 @@ def get_approval_events(address: str) -> List[LogReceipt]:
 def get_spender_hex_address(approval: LogReceipt) -> str:
     address_as_topic = approval["topics"][
         consts.APPROVAL_EVENT_RECIPIENT_ADDRESS_TOPIC_INDEX
-    ]
-    address_hex = address_as_topic[: -consts.ETHEREUM_ADDRESS_HEX_LENGTH]
+    ].hex()
+    address_hex = address_as_topic[-consts.ETHEREUM_ADDRESS_HEX_LENGTH:]
     return f"0x{address_hex}"
 
 
 def get_owner_hex_address(approval: LogReceipt) -> str:
     address_as_topic = approval["topics"][
         consts.APPROVAL_EVENT_SENDER_ADDRESS_TOPIC_INDEX
-    ]
-    address_hex = address_as_topic[: -consts.ETHEREUM_ADDRESS_HEX_LENGTH]
+    ].hex()
+    address_hex = address_as_topic[-consts.ETHEREUM_ADDRESS_HEX_LENGTH:]
     return f"0x{address_hex}"
 
 
